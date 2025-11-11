@@ -1,0 +1,2639 @@
+<!DOCTYPE html>
+<!-- 
+
+=========================================================================
+
+Web-DYUSBKVM - Web USBKVM System
+
+Version: 1.0.0
+Last Update: 2025-01-06
+
+Author  : DA2@Danny
+Based on JTUSBKVM by Jason Cheng 
+
+License: GNU Affero General Public License v3.0
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+any later version.
+
+=========================================================================
+
+
+=========================================================================
+
+-->
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Web-DYUSBKVM - DA2@Danny</title>
+    <link rel="icon" type="image/png" sizes="512x512" href="logo.png">
+    <style>
+        /* Tailwind CSS inspired styles - All inline, no external dependencies */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #f1f5f9; /* slate-100 */
+        }
+        
+        #header {
+            display: flex;
+            flex-direction: column;
+            background: #1e293b; /* slate-800 */
+            padding: 4px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            gap: 4px;
+            border-bottom: 1px solid #334155; /* slate-700 */
+        }
+
+        #titleContainer {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #334155; /* slate-700 */
+            background: #0f172a; /* slate-900 */
+        }
+
+        #controls, #rightControls {
+            display: inline-flex;  
+            align-items: center;
+            background: #1e293b; /* slate-800 */
+            border-radius: 6px;
+            padding: 8px;
+            gap: 8px;
+            flex: 0 0 auto;  
+            white-space: nowrap;
+            border: 1px solid #334155; /* slate-700 */
+        }
+        
+        #controlsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: 100%;
+            background: #1e293b; /* slate-800 */
+            padding: 8px;
+        }
+        
+        #logo {
+            height: 32px;
+            margin-right: 12px;
+        }
+        
+        #title {
+            font-weight: 600;
+            font-size: 18px;
+            color: #e2e8f0; /* slate-200 */
+            margin-right: 16px;
+        }
+
+        #rightControls .button-group {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #rightControls {          
+            display: inline-flex;
+            align-items: center;
+            background: #1e293b; /* slate-800 */
+            border-radius: 6px;
+            padding: 8px;
+            gap: 8px;
+            border: 1px solid #334155; /* slate-700 */
+        }
+        
+        #videoContainer {
+            flex-grow: 1;
+            position: relative;
+            background: #020617; /* slate-950 */
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #475569; /* slate-600 */
+        }
+        
+        #videoContainer.zoomed {
+            overflow: auto;
+            display: block;
+        }
+
+
+        #zoomControls {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        #zoomControls button {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            background-color: rgba(30, 41, 59, 0.9); /* slate-800 with opacity */
+            color: #e2e8f0; /* slate-200 */
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #475569; /* slate-600 */
+        }
+
+        #zoomControls button:hover:not(:disabled) {
+            background-color: #334155; /* slate-700 */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        #zoomControls button:disabled {
+            background-color: rgba(51, 65, 85, 0.5); /* slate-700 with opacity */
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        video {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            transition: width 0.3s ease, height 0.3s ease;
+            display: block;
+        }
+        
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            outline: none;
+            cursor: crosshair;
+            z-index: 10;
+        }
+        
+        select, button, input[type="text"] {
+            height: 36px;
+            padding: 0 12px;
+            font-size: 14px;
+            border: 1px solid #475569; /* slate-600 */
+            border-radius: 6px;
+            background: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-weight: 500;
+        }
+        
+        select:hover, button:hover:not(:disabled), input[type="text"]:hover:not(:disabled) {
+            background-color: #334155; /* slate-700 */
+            border-color: #64748b; /* slate-500 */
+        }
+        
+        select:focus, button:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); /* blue-500 with opacity */
+        }
+        
+        @keyframes buttonHighlight {
+            0% { background-color: #1e293b; }
+            50% { background-color: #ef4444; } /* red-500 */
+            100% { background-color: #1e293b; }
+        }
+        
+        .highlight-button {
+            animation: buttonHighlight 1s ease-in-out 3;
+        }
+        .tooltip {
+            position: absolute;
+            background-color: #1e293b; /* slate-800 */
+            color: #f1f5f9; /* slate-100 */
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: fadeInOut 3s ease-in-out;
+            white-space: nowrap;
+            border: 1px solid #475569; /* slate-600 */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .tooltip::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 8px 8px 8px;
+            border-style: solid;
+            border-color: transparent transparent #1e293b transparent; /* slate-800 */
+        }
+
+        .zoom-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            color: #f1f5f9; /* slate-100 */
+            font-size: 48px;
+            font-weight: 600;
+            background-color: rgba(15, 23, 42, 0.9); /* slate-900 with opacity */
+            padding: 24px 48px;
+            border-radius: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 20;
+            border: 1px solid #475569; /* slate-600 */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .zoom-indicator.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { opacity: 0; }
+        }        
+
+        .zoom-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+        }
+
+        #video {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+
+        .toggle-button:hover:not(:disabled) {
+            background-color: #334155; /* slate-700 */
+            border-color: #64748b; /* slate-500 */
+        }
+        
+        .toggle-button.active {
+            background-color: #3b82f6; /* blue-500 */
+            color: #ffffff;
+            border-color: #2563eb; /* blue-600 */
+        }
+        
+        .toggle-button.active:hover:not(:disabled) {
+            background-color: #2563eb; /* blue-600 */
+        }
+        
+        button:active:not(:disabled), .toggle-button:active:not(:disabled), input[type="text"]:active:not(:disabled) {
+            transform: scale(0.97);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .toggle-button {
+            background-color: #334155; /* slate-700 */
+            color: #e2e8f0; /* slate-200 */
+        }
+        
+        button:disabled, input[type="text"]:disabled, select:disabled {
+            opacity: 0.5;
+            border-color: #475569; /* slate-600 */
+            cursor: not-allowed;
+            background-color: #1e293b; /* slate-800 */
+        }
+        
+        .button-group {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+  
+        .separator {
+            height: 36px;
+            margin: 0 8px;
+            border-left: 1px solid #475569; /* slate-600 */
+            flex-shrink: 0;
+        }
+        
+        select, button {
+            height: 36px;
+            padding: 0 12px;
+            font-size: 14px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .header-label {
+            height: 36px;
+            line-height: 36px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #cbd5e1; /* slate-300 */
+            flex-shrink: 0;
+            white-space: nowrap;
+            padding: 0 12px;
+        }
+        
+        .button-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            font-size: 18px;
+        }
+        
+        #fnKeysPopup {
+            display: none;
+            position: absolute;
+            background: #1e293b; /* slate-800 */
+            border: 1px solid #475569; /* slate-600 */
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        #fnKeysPopup button {
+            padding: 8px 16px;
+            margin: 0;
+            width: 100%;
+            background: #334155; /* slate-700 */
+            color: #e2e8f0; /* slate-200 */
+            border: 1px solid #475569; /* slate-600 */
+        }
+        
+        #fnKeysPopup button:hover:not(:disabled) {
+            background: #475569; /* slate-600 */
+        }
+        
+        #noVideoText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #94a3b8; /* slate-400 */
+            font-size: 24px;
+            font-weight: 500;
+            display: none;
+            z-index: 5;
+        }
+        
+        #debugInfo {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(15, 23, 42, 0.95); /* slate-900 with opacity */
+            color: #e2e8f0; /* slate-200 */
+            padding: 16px;
+            border-radius: 8px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+            z-index: 20;
+            display: none;
+            min-width: 280px;
+            line-height: 1.6;
+            border: 1px solid #475569; /* slate-600 */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        #debugInfo.show {
+            display: block;
+        }
+        
+        #debugInfo strong {
+            color: #3b82f6; /* blue-500 */
+            font-weight: 600;
+        }
+        
+        #recordingTime {
+            display: none;
+            margin: 0 12px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 14px;
+            line-height: 36px;
+            color: #ef4444; /* red-500 */
+            font-weight: 600;
+            min-width: 70px;
+        }
+        
+        #video:not([src]):not([srcObject]) + #overlay + #noVideoText {
+            display: block;
+        }
+        
+        /* Responsive Web Design (RWD) */
+        @media (max-width: 1200px) {
+            #controls, #rightControls {
+                flex-wrap: wrap;
+            }
+            
+            .button-group {
+                flex-wrap: wrap;
+            }
+            
+            select, button {
+                font-size: 13px;
+                padding: 0 10px;
+                height: 34px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #header {
+                padding: 4px;
+            }
+            
+            #titleContainer {
+                padding: 8px 12px;
+            }
+            
+            #title {
+                font-size: 16px;
+            }
+            
+            #logo {
+                height: 28px;
+                margin-right: 8px;
+            }
+            
+            #controlsContainer {
+                flex-direction: column;
+                gap: 6px;
+                padding: 6px;
+            }
+            
+            #controls, #rightControls {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+                padding: 8px;
+            }
+            
+            .header-label {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 8px;
+                padding: 4px 0;
+            }
+            
+            .button-wrapper {
+                width: 100%;
+                margin-left: 0;
+                flex-direction: column;
+                gap: 6px;
+            }
+            
+            .button-group {
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 4px;
+                margin-left: 0;
+            }
+            
+            .separator {
+                width: 100%;
+                height: 1px;
+                border-left: none;
+                border-top: 1px solid #475569;
+                margin: 4px 0;
+            }
+            
+            select, button {
+                font-size: 12px;
+                padding: 0 8px;
+                height: 32px;
+                flex: 1 1 auto;
+                min-width: 80px;
+            }
+            
+            #fnKeysPopup {
+                grid-template-columns: repeat(3, 1fr);
+                padding: 8px;
+                gap: 6px;
+            }
+            
+            #fnKeysPopup button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            #debugInfo {
+                top: 8px;
+                right: 8px;
+                min-width: 200px;
+                padding: 12px;
+                font-size: 11px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #title {
+                font-size: 14px;
+            }
+            
+            #logo {
+                height: 24px;
+                margin-right: 6px;
+            }
+            
+            #controls, #rightControls {
+                padding: 6px;
+                gap: 6px;
+            }
+            
+            .button-group {
+                gap: 3px;
+            }
+            
+            select, button {
+                font-size: 11px;
+                padding: 0 6px;
+                height: 30px;
+                min-width: 60px;
+            }
+            
+            .header-label {
+                font-size: 12px;
+                height: 28px;
+                line-height: 28px;
+            }
+            
+            #fnKeysPopup {
+                grid-template-columns: repeat(2, 1fr);
+                padding: 6px;
+                gap: 4px;
+            }
+            
+            #fnKeysPopup button {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            
+            #debugInfo {
+                min-width: 160px;
+                padding: 8px;
+                font-size: 10px;
+            }
+            
+            #zoomControls {
+                bottom: 8px;
+                right: 8px;
+                gap: 4px;
+            }
+            
+            #zoomControls button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Additional Tailwind-inspired utility styles */
+        select option {
+            background: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+        }
+        
+        /* Scrollbar styling for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0f172a; /* slate-900 */
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 6px;
+            border: 2px solid #0f172a; /* slate-900 */
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div id="titleContainer">
+            <img id="logo" src="logo.png" alt="Logo">
+            <div id="title">Web-DYUSBKVM - DA2@Danny</div>
+        </div>
+        <div id="controlsContainer">
+            <div id="controls">
+                <span class="header-label">Control</span>
+                <div class="button-wrapper">
+                    <div class="button-group">
+                        <button id="connectController" title="Connect CH9329 Module">🟢 Connect</button>
+                        <button id="disconnectController" disabled>🔴 Disconnect</button>
+                    </div>
+                    <div class="separator"></div>
+                    <div class="button-group">
+                        <button id="ctrlAltDelButton" disabled>Ctrl+Alt+Del</button>
+                        <button id="fnButton" class="toggle-button" disabled>F1-F12</button>
+                        <button id="winButton" class="toggle-button" disabled title="Windows Key / Super Key / Command Key">Win</button>
+                        <button id="ctrlButton" class="toggle-button" disabled>Ctrl</button>
+                        <button id="shiftButton" class="toggle-button" disabled>Shift</button>
+                        <button id="altButton" class="toggle-button" disabled>Alt</button>
+                        <button id="spaceButton" disabled>Space</button>
+                        <button id="tabButton" disabled>Tab</button>
+                        <button id="mouseModeButton" class="toggle-button" disabled title="Toggle Mouse Move Mode: Relative (smooth) or Absolute (precise)">Mouse: Relative</button>
+                        <button id="releaseAllModifiers" class="toggle-button" disabled title="Release all pressed modifier keys">🔄 Release</button>
+                        <button id="pasteText" disabled title="Paste text and simulate keyboard input on the target computer">📋 Paste</button>
+                    </div>
+                </div>
+            </div>
+        
+            <div id="rightControls">
+                <span class="header-label">Video</span>
+                <div class="button-wrapper">
+                    <div class="button-group">
+                        <select id="videoSource"></select>
+                        <select id="captureResolution" title="Simulated Resolution: Select the resolution for coordinate mapping (Default: 1920x1080)">
+                            <option value="1024x600">1024x600</option>
+                            <option value="1280x720">1280x720</option>
+                            <option value="1280x800">1280x800</option>
+                            <option value="1366x768">1366x768</option>
+                            <option value="1440x900">1440x900</option>
+                            <option value="1600x900">1600x900</option>
+                            <option value="1920x1080" selected>1920x1080</option>
+                            <option value="1920x1200">1920x1200</option>
+                            <option value="2560x1440">2560x1440</option>
+                            <option value="2560x1600">2560x1600</option>
+                            <option value="2880x1800">2880x1800</option>
+                            <option value="3200x1800">3200x1800</option>
+                            <option value="3840x2160">3840x2160</option>
+                        </select>
+                        <select id="mouseMoveMode" title="Mouse Move Mode: Relative (smooth) or Absolute (precise)">
+                            <option value="relative" selected>Relative</option>
+                            <option value="absolute">Absolute</option>
+                        </select>
+                        <button id="connectCapture" title="Connect video capture device, USB HDMI Capture only">▶️ Connect</button>
+                        <button id="disconnectCapture" disabled>⏹️ Disconnect</button>
+                    </div>
+                    <div class="separator"></div>
+                    <div class="button-group">   
+                        <button id="zoomIn" title="Zoom in video display, up to 300%">🔍＋</button>
+                        <button id="zoomOut" disabled title="Zoom out video display">🔍－</button>
+                        <button id="screenshot" disabled title="Capture screenshot and download">🖼️ Screenshot</button>
+                        <button id="startRecord" disabled title="Start video recording">🔴 Record</button>
+                        <button id="stopRecord" disabled title="Stop video recording and download video file">⬛ Stop</button>
+                        <span id="recordingTime" style="display: none;">00:00:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="fnKeysPopup">
+        <button class="fn-key" data-key="F1">F1</button>
+        <button class="fn-key" data-key="F2">F2</button>
+        <button class="fn-key" data-key="F3">F3</button>
+        <button class="fn-key" data-key="F4">F4</button>
+        <button class="fn-key" data-key="F5">F5</button>
+        <button class="fn-key" data-key="F6">F6</button>
+        <button class="fn-key" data-key="F7">F7</button>
+        <button class="fn-key" data-key="F8">F8</button>
+        <button class="fn-key" data-key="F9">F9</button>
+        <button class="fn-key" data-key="F10">F10</button>
+        <button class="fn-key" data-key="F11">F11</button>
+        <button class="fn-key" data-key="F12">F12</button>
+    </div>
+
+    <div id="pasteDialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+    background: white; padding: 20px; border: 1px solid #000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; 
+    min-width: 500px; max-width: 80%;">
+        <div style="margin-bottom: 10px; font-weight: bold;">Text Sender Tool</div>
+        <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-left: 4px solid #004085; font-size: 14px;">
+            <p style="margin: 0 0 8px 0;">This tool simulates keyboard input on the target computer character by character.</p>
+            <p style="margin: 0 0 8px 0;">Supported content:</p>
+            <ul style="margin: 0 0 8px 20px; padding: 0;">
+                <li>English letters (uppercase and lowercase)</li>
+                <li>Numbers</li>
+                <li>Punctuation marks</li>
+                <li>Spaces and line breaks</li>
+            </ul>
+            <p style="margin: 0; color: #dc3545;">Note: Chinese, Japanese, Korean and other non-English characters are not supported</p>
+        </div>
+        <div style="margin-bottom: 10px;">Please paste the text to send:</div>
+        <textarea id="pasteArea" rows="10" cols="50" style="width: 100%; margin-bottom: 10px; padding: 8px;"></textarea>
+        <div id="pasteProgress" style="display: none; margin-bottom: 10px; padding: 8px; background: #e9ecef;">
+            Progress: <span id="pasteStatus">0</span>/<span id="pasteTotal">0</span> 
+            (<span id="pastePercent">0</span>%)
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="startPaste" style="padding: 5px 15px;">Start</button>
+            <button id="pausePaste" style="padding: 5px 15px;">Pause</button>
+            <button id="cancelPaste" style="padding: 5px 15px;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="videoContainer">
+        <video id="video" autoplay muted></video>
+        <div id="overlay" tabindex="0"></div>
+        <div id="noVideoText">No video source connected</div>   
+        <div id="zoomIndicator" class="zoom-indicator"></div>
+        <div id="debugInfo">
+            <div><strong>Debug Info</strong></div>
+            <div>Browser Coordinates: <span id="debugDisplayXY">-</span></div>
+            <div>Simulated Resolution Coordinates: <span id="debugScreenXY">-</span></div>
+            <div>CH9329 Coordinates: <span id="debugCH9329XY">-</span></div>
+            <div>Simulated Resolution: <span id="debugResolution">-</span></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { CH9329, HID_KEYS } from './js/ch9329.js';
+        
+        const connectControllerButton = document.getElementById('connectController');
+        const disconnectControllerButton = document.getElementById('disconnectController');
+        const connectCaptureButton = document.getElementById('connectCapture');
+        const disconnectCaptureButton = document.getElementById('disconnectCapture');
+        const video = document.getElementById('video');
+        const videoSourceSelect = document.getElementById('videoSource');
+        const captureResolutionSelect = document.getElementById('captureResolution');
+        const mouseMoveModeSelect = document.getElementById('mouseMoveMode');
+        const mouseModeButton = document.getElementById('mouseModeButton');
+        const overlay = document.getElementById('overlay');
+        const ctrlAltDelButton = document.getElementById('ctrlAltDelButton');
+        const winButton = document.getElementById('winButton');
+        const ctrlButton = document.getElementById('ctrlButton');
+        const shiftButton = document.getElementById('shiftButton');
+        const altButton = document.getElementById('altButton');
+        const spaceButton = document.getElementById('spaceButton');
+        const tabButton = document.getElementById('tabButton');
+        const fnButton = document.getElementById('fnButton');
+        const releaseAllModifiersButton = document.getElementById('releaseAllModifiers');
+        const fnKeysPopup = document.getElementById('fnKeysPopup');
+        const screenshotButton = document.getElementById('screenshot');
+        const startRecordButton = document.getElementById('startRecord');
+        const stopRecordButton = document.getElementById('stopRecord');
+        const recordingTimeDisplay = document.getElementById('recordingTime');
+        const pressedModifiers = new Set();
+        const modifierKeys = {
+            ControlLeft: 'Control',
+            ControlRight: 'Control',
+            AltLeft: 'Alt',
+            AltRight: 'Alt',
+            MetaLeft: 'Meta',
+            MetaRight: 'Meta',
+            ShiftLeft: 'Shift',
+            ShiftRight: 'Shift'
+        };
+        const pressedKeys = new Set();   
+        const pasteTextButton = document.getElementById('pasteText');
+        const pasteDialog = document.getElementById('pasteDialog');
+        const pasteArea = document.getElementById('pasteArea');
+        const startPasteButton = document.getElementById('startPaste');
+        const pausePasteButton = document.getElementById('pausePaste');
+        const cancelPasteButton = document.getElementById('cancelPaste');
+        const pasteProgress = document.getElementById('pasteProgress');
+        const pasteStatus = document.getElementById('pasteStatus');
+        const pasteTotal = document.getElementById('pasteTotal');
+        const pastePercent = document.getElementById('pastePercent');
+        const debugInfo = document.getElementById('debugInfo');
+        const debugDisplayXY = document.getElementById('debugDisplayXY');
+        const debugScreenXY = document.getElementById('debugScreenXY');
+        const debugCH9329XY = document.getElementById('debugCH9329XY');
+        const debugResolution = document.getElementById('debugResolution');
+        const keyboardMap = {
+            'a': 'KeyA', 'b': 'KeyB', 'c': 'KeyC', 'd': 'KeyD', 'e': 'KeyE',
+            'f': 'KeyF', 'g': 'KeyG', 'h': 'KeyH', 'i': 'KeyI', 'j': 'KeyJ',
+            'k': 'KeyK', 'l': 'KeyL', 'm': 'KeyM', 'n': 'KeyN', 'o': 'KeyO',
+            'p': 'KeyP', 'q': 'KeyQ', 'r': 'KeyR', 's': 'KeyS', 't': 'KeyT',
+            'u': 'KeyU', 'v': 'KeyV', 'w': 'KeyW', 'x': 'KeyX', 'y': 'KeyY',
+            'z': 'KeyZ',
+            '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5',
+            '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9', '0': 'Digit0',
+            '-': 'Minus', '=': 'Equal',
+            '[': 'BracketLeft', ']': 'BracketRight',
+            '\\': 'Backslash',
+            ';': 'Semicolon', "'": 'Quote',
+            ',': 'Comma', '.': 'Period',
+            '/': 'Slash', '`': 'Backquote',
+            ' ': 'Space'
+        };
+        const needsShift = new Set([
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+            'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
+            '{', '}', '|', ':', '"', '<', '>', '?'
+        ]);
+        const WHEEL_DELAY = 50; // 延遲 50ms
+        const ZOOM_STEP = 0.25;
+        const ZOOM_MAX = 3; // 最大放大倍率 300%
+        const ZOOM_MIN = 1; // 最小放大倍率 100%
+        const zoomInButton = document.getElementById('zoomIn');
+        const zoomOutButton = document.getElementById('zoomOut');
+        const videoContainer = document.getElementById('videoContainer');
+        const videoElement = document.getElementById('video');
+        const overlayElement = document.getElementById('overlay');
+        let currentZoom = 1;
+        let videoStream;
+        let ch9329 = null;
+        let port = null;
+        let isPasting = false;
+        let isPausePasting = false;
+        let currentPasteIndex = 0;
+        let textToSend = '';
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let recordingTimer = null;
+        let recordingStartTime = null;
+        let keyEventListener = null;
+        let mouseMoveListener = null;
+        let mouseClickListener = null; 
+        let lastMouseX = null;
+        let lastMouseY = null;
+        let lastMouseScreenX = null;  // 上次的螢幕絕對座標（用於相對移動計算）
+        let lastMouseScreenY = null;
+        let lastConsoleLogTime = 0;
+        let isFnPopupVisible = false;
+        let lastWheelTime = 0;
+        let mouseMoveThrottleTimer = null;
+        let pendingMouseMove = null;
+        let lastMouseMoveTime = 0;
+        const MOUSE_MOVE_THROTTLE = 16; // 約 60fps (16ms)
+        let mouseMoveMode = 'relative'; // 'relative' 或 'absolute'
+
+
+        // 放大函數
+        function zoomIn() {
+            if (currentZoom < ZOOM_MAX) {
+                currentZoom += ZOOM_STEP;
+                applyZoom();
+                showZoomIndicator(); // 顯示縮放指示器
+            }
+        }
+
+        // 縮小函數
+        function zoomOut() {
+            if (currentZoom > ZOOM_MIN) {
+                currentZoom -= ZOOM_STEP;
+                applyZoom();
+                showZoomIndicator(); // 顯示縮放指示器
+            }
+        }
+
+        // 套用放大縮小效果
+        function applyZoom() {
+            const videoWidth = video.videoWidth * currentZoom;
+            const videoHeight = video.videoHeight * currentZoom;
+            
+            // 設定視訊和遮罩層的變換
+            videoElement.style.transform = `scale(${currentZoom})`;
+            overlayElement.style.transform = `scale(${currentZoom})`;
+            
+            // 設定變換原點為左上角
+            videoElement.style.transformOrigin = '0 0';
+            overlayElement.style.transformOrigin = '0 0';
+            
+            // 計算放大後的尺寸
+            const scaledWidth = Math.max(video.videoWidth * currentZoom, video.videoWidth);
+            const scaledHeight = Math.max(video.videoHeight * currentZoom, video.videoHeight);
+            
+            if (currentZoom > 1) {
+                // 啟用捲動條
+                videoContainer.style.overflow = 'auto';
+                
+                // 建立或取得包裝器
+                let wrapper = videoContainer.querySelector('.zoom-wrapper');
+                if (!wrapper) {
+                    wrapper = document.createElement('div');
+                    wrapper.className = 'zoom-wrapper';
+                    // 將現有元素移動到包裝器中
+                    while (videoContainer.firstChild) {
+                        wrapper.appendChild(videoContainer.firstChild);
+                    }
+                    videoContainer.appendChild(wrapper);
+                }
+                
+                // 設定包裝器的尺寸為放大後的實際尺寸
+                wrapper.style.width = `${scaledWidth}px`;
+                wrapper.style.height = `${scaledHeight}px`;
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '0';
+                wrapper.style.top = '0';
+                
+                // 確保視訊和遮罩層填滿包裝器
+                videoElement.style.position = 'absolute';
+                overlayElement.style.position = 'absolute';
+                videoElement.style.width = `${video.videoWidth}px`;
+                videoElement.style.height = `${video.videoHeight}px`;
+                overlayElement.style.width = `${video.videoWidth}px`;
+                overlayElement.style.height = `${video.videoHeight}px`;
+                
+                // 更新容器類別
+                videoContainer.classList.add('zoomed');
+            } else {
+                // 縮放比例為 1 時，還原所有設定
+                videoContainer.style.overflow = 'hidden';
+                videoContainer.style.display = 'flex';  // 重要：恢復為 flex 布局
+                
+                const wrapper = videoContainer.querySelector('.zoom-wrapper');
+                if (wrapper) {
+                    while (wrapper.firstChild) {
+                        videoContainer.appendChild(wrapper.firstChild);
+                    }
+                    wrapper.remove();
+                }
+                
+                // 重設視訊和遮罩層的樣式
+                videoElement.style.position = 'relative';
+                overlayElement.style.position = 'absolute';
+                videoElement.style.width = '100%';
+                videoElement.style.height = '100%';
+                videoElement.style.maxWidth = '100%';  // 確保視訊不會超出容器
+                videoElement.style.maxHeight = '100%';
+                videoElement.style.transform = 'none';  // 移除縮放變換
+                overlayElement.style.transform = 'none';
+                
+                // 恢復原始的 object-fit 設定
+                videoElement.style.objectFit = 'contain';
+                
+                // 移除容器類別
+                videoContainer.classList.remove('zoomed');
+            }
+            
+            // 更新縮放按鈕狀態
+            zoomInButton.disabled = currentZoom >= ZOOM_MAX;
+            zoomOutButton.disabled = currentZoom <= ZOOM_MIN;
+        }
+
+
+        // 擷圖功能
+        async function takeScreenshot() {
+            if (video.srcObject) {
+                try {
+                    // 建立 canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    // 在 canvas 上繪製目前視訊畫面
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // 轉換為 blob
+                    const blob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/png');
+                    });
+                    
+                    // 建立下載連結
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `screenshot_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Screenshot error:', error);
+                    alert('Screenshot failed, please try again');
+                }
+            }
+        }
+
+
+        // 檢查是否包含中日韓文字
+        function containsCJK(text) {
+            // Unicode 範圍：
+            // 中文：\u4e00-\u9fff
+            // 日文假名：\u3040-\u309f\u30a0-\u30ff
+            // 韓文：\uac00-\ud7af\u1100-\u11ff
+            const cjkRegex = /[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u1100-\u11ff]/;
+            return cjkRegex.test(text);
+        }
+
+        // 顯示縮放指示器
+        function showZoomIndicator() {
+            const zoomIndicator = document.getElementById('zoomIndicator');
+            zoomIndicator.textContent = `${Math.round(currentZoom * 100)}%`;
+            zoomIndicator.classList.add('show');
+            
+            // 清除之前的計時器（如果有的話）
+            if (zoomIndicator.timeoutId) {
+                clearTimeout(zoomIndicator.timeoutId);
+            }
+            
+            // 設置計時器，在幾秒後隱藏指示器
+            zoomIndicator.timeoutId = setTimeout(() => {
+                zoomIndicator.classList.remove('show');
+            }, 2000); // 顯示 2 秒
+        }
+
+
+        // 開始錄影
+        function startRecording() {
+            try {
+                recordedChunks = [];
+                const options = { 
+                    mimeType: 'video/mp4;codecs=h264,aac'  // 嘗試使用 MP4
+                };
+
+                // 如果瀏覽器不支援 MP4 錄製，回到 WebM
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    console.log('MP4 format not supported, using WebM');
+                    options.mimeType = 'video/webm;codecs=vp9';
+                }
+
+                mediaRecorder = new MediaRecorder(video.srcObject, options);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = saveRecording;
+                
+                mediaRecorder.start();
+                startRecordButton.disabled = true;
+                stopRecordButton.disabled = false;
+                console.log('Recording started');
+
+                // 設定錄影開始時間
+                recordingStartTime = Date.now();
+
+                // 顯示錄影時間
+                recordingTimeDisplay.style.display = 'inline'; // 或 'block' 根據您的需求
+
+                // 初始化錄影時間顯示
+                updateRecordingTime();
+
+                // 啟動定時器，每秒更新一次錄影時間
+                recordingTimer = setInterval(updateRecordingTime, 1000);
+
+            } catch (error) {
+                console.error('Recording start error:', error);
+                alert('Failed to start recording, please try again');
+            }
+        }
+
+
+
+        function highlightConnectController() {
+            if (!connectControllerButton.classList.contains('highlight-button')) {
+                
+                // 增加閃爍效果
+                connectControllerButton.classList.add('highlight-button');
+                
+                // 建立提示框
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = '請先連接控制器才能使用鍵盤滑鼠功能！';
+                
+                // 計算位置
+                const buttonRect = connectControllerButton.getBoundingClientRect();
+                tooltip.style.left = `${buttonRect.left + (buttonRect.width / 2)}px`;
+                tooltip.style.top = `${buttonRect.bottom + 10}px`;
+                tooltip.style.transform = 'translateX(-50%)';
+                
+                // 加入到 body 中
+                document.body.appendChild(tooltip);
+                
+                // 設定時器移除效果
+                setTimeout(() => {
+                    connectControllerButton.classList.remove('highlight-button');
+                    document.body.removeChild(tooltip);
+                }, 3000);
+            }
+        }
+
+        function checkControllerAndHighlight(event) {
+            if (!port && video.srcObject) {  // 如果沒有連接控制器但有視訊
+                event.preventDefault();  // 阻止預設行為
+                highlightConnectController();
+            }
+        }
+
+        function updateRecordingTime() {
+            const elapsedTime = Date.now() - recordingStartTime;
+            const totalSeconds = Math.floor(elapsedTime / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            recordingTimeDisplay.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // 停止錄影
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                startRecordButton.disabled = false;
+                stopRecordButton.disabled = true;
+                console.log('Recording stopped');
+
+                // 停止定時器
+                if (recordingTimer) {
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                }
+
+                // 隱藏錄影時間
+                recordingTimeDisplay.style.display = 'none';
+
+                // 重置錄影開始時間
+                recordingStartTime = null;
+
+                // 重置錄影時間顯示內容（可選）
+                recordingTimeDisplay.textContent = '00:00:00';
+            }
+        }
+
+
+        // 儲存錄影
+        function saveRecording() {
+            try {
+                const mimeType = mediaRecorder.mimeType;
+                const blob = new Blob(recordedChunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // 判斷檔案格式
+                const fileExt = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                a.download = `recording_${new Date().toISOString().replace(/[:.]/g, '-')}.${fileExt}`;
+                
+                if (fileExt === 'webm') {
+                    alert('Due to browser limitations, the video has been saved as WebM format. To convert to MP4, please use video conversion software.');
+                }
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                recordedChunks = [];
+            } catch (error) {
+                console.error('Save recording error:', error);
+                alert('Failed to save recording, please try again');
+            }
+        }
+
+        function stopVideoStream() {
+            if (videoStream) {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    stopRecording();
+                    clearInterval(recordingTimer);
+                    recordingTimeDisplay.style.display = 'none';
+                }
+                videoStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                videoStream = null;
+                document.getElementById('noVideoText').style.display = 'block';
+            }
+            connectCaptureButton.disabled = false;
+            disconnectCaptureButton.disabled = true;
+            screenshotButton.disabled = true;       
+            startRecordButton.disabled = true;      
+            stopRecordButton.disabled = true;       
+            pasteTextButton.disabled = true;
+        }
+
+        // 取得視訊裝置清單
+        async function getVideoSources() {
+            try {
+                // 先請求權限
+                await navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        // 取得權限後立即停止stream
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+                    
+                // Then enumerate devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => {
+                    if (device.kind === 'videoinput') {
+                        const label = device.label.toUpperCase();
+                        return (label.startsWith('USB') && 
+                            /\d\.?\s*\d/.test(label) && 
+                            (label.includes('HD') || label.includes('CAPTURE')));
+                    }
+                    return false;
+                });
+
+                if (videoDevices.length === 0) {
+                    // No matching device
+                    videoSourceSelect.innerHTML = '<option value="">No matching device</option>';
+                    // 停用所有視訊相關按鈕
+                    connectCaptureButton.disabled = true;
+                    disconnectCaptureButton.disabled = true;
+                    screenshotButton.disabled = true;
+                    startRecordButton.disabled = true;
+                    stopRecordButton.disabled = true;
+                } else {
+                    videoSourceSelect.innerHTML = videoDevices.map(device => {
+                        let label = device.label || 'Video Source';
+                        label = label.replace(/\(.*?\)/g, '').trim();
+                        return `<option value="${device.deviceId}">${label}</option>`;
+                    }).join('');
+
+                    // Enable video connect button
+                    connectCaptureButton.disabled = false;
+
+                    const savedVideoSource = localStorage.getItem('videoSourceId');
+                    const savedCaptureResolution = localStorage.getItem('captureResolution');
+
+                    if (savedVideoSource && videoDevices.some(device => device.deviceId === savedVideoSource)) {
+                        videoSourceSelect.value = savedVideoSource;
+                    }
+
+                    if (savedCaptureResolution) {
+                        captureResolutionSelect.value = savedCaptureResolution;
+                    }
+
+                    const savedMouseMoveMode = localStorage.getItem('mouseMoveMode');
+                    if (savedMouseMoveMode) {
+                        mouseMoveModeSelect.value = savedMouseMoveMode;
+                        mouseMoveMode = savedMouseMoveMode;
+                        updateMouseModeButton();
+                    } else {
+                        updateMouseModeButton();
+                    }
+                }
+            } catch (error) {
+                console.error('Get video sources error:', error);
+                alert('Please allow video permission to use this feature');
+            }
+        }
+
+        async function startVideoStream() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            const selectedDeviceId = videoSourceSelect.value;
+            // 硬體擷取卡實際解析度為 1920x1080
+            const hardwareWidth = 1920;
+            const hardwareHeight = 1080;
+
+            const constraints = {
+                video: {
+                    deviceId: { exact: selectedDeviceId },
+                    width: { exact: hardwareWidth },  // Use hardware actual resolution
+                    height: { exact: hardwareHeight }
+                }
+            };
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = videoStream;
+                document.getElementById('noVideoText').style.display = 'none'; 
+
+                video.onloadedmetadata = () => {
+                    connectCaptureButton.disabled = true;
+                    disconnectCaptureButton.disabled = false;
+                    screenshotButton.disabled = false;      
+                    startRecordButton.disabled = false;     
+                    stopRecordButton.disabled = true;       
+
+                    localStorage.setItem('videoSourceId', selectedDeviceId);
+                    
+                    // Adjust display scale based on simulated resolution
+                    updateVideoDisplayScale();
+                };
+            } catch (error) {
+                console.error('Start video stream error:', error);
+                
+                if (error.name === 'OverconstrainedError') {
+                    // Inform user that hardware resolution is not supported
+                    alert(`This device does not support ${hardwareWidth}x${hardwareHeight} resolution.`);
+                } else if (error.name === 'NotAllowedError') {
+                    alert('Please allow video permission to use this feature');
+                } else if (error.name === 'NotFoundError') {
+                    alert('Video device not found');
+                } else if (error.name === 'NotReadableError') {
+                    alert('Cannot access video device, may be occupied by another program');
+                } else {
+                    alert('Video startup failed: ' + error.message);
+                }
+            }
+        }
+
+        // Adjust video display scale based on simulated resolution and container size
+        function updateVideoDisplayScale() {
+            if (!video.videoWidth || !video.videoHeight) return;
+            
+            // Get simulated resolution
+            const [simWidth, simHeight] = captureResolutionSelect.value.split('x').map(Number);
+            
+            // Hardware actual resolution
+            const hardwareWidth = 1920;
+            const hardwareHeight = 1080;
+            
+            // Get container size
+            const container = document.getElementById('videoContainer');
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            
+            // Calculate aspect ratios
+            const simAspectRatio = simWidth / simHeight;
+            const containerAspectRatio = containerWidth / containerHeight;
+            
+            // Calculate display size to fit container while maintaining aspect ratio
+            let displayWidth, displayHeight;
+            
+            if (simAspectRatio > containerAspectRatio) {
+                // Simulated resolution is wider, fit to container width
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / simAspectRatio;
+            } else {
+                // Simulated resolution is taller, fit to container height
+                displayHeight = containerHeight;
+                displayWidth = containerHeight * simAspectRatio;
+            }
+            
+            // Ensure it doesn't exceed container size
+            if (displayWidth > containerWidth) {
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / simAspectRatio;
+            }
+            if (displayHeight > containerHeight) {
+                displayHeight = containerHeight;
+                displayWidth = containerHeight * simAspectRatio;
+            }
+            
+            // Set video element display size
+            video.style.width = `${displayWidth}px`;
+            video.style.height = `${displayHeight}px`;
+            video.style.maxWidth = `${displayWidth}px`;
+            video.style.maxHeight = `${displayHeight}px`;
+            
+            console.log(`Video display adjusted: Container ${containerWidth.toFixed(0)}x${containerHeight.toFixed(0)} -> Simulated ${simWidth}x${simHeight} -> Display ${displayWidth.toFixed(0)}x${displayHeight.toFixed(0)}`);
+        }
+            
+    
+        // Map event.code to HID key code
+        function getHIDKeyCode(eventCode, shift = false) {
+            // Letter keys
+            if (eventCode.startsWith('Key') && eventCode.length === 4) {
+                const letter = eventCode.charAt(3).toLowerCase();
+                const keyInfo = HID_KEYS.get(shift ? letter.toUpperCase() : letter);
+                return keyInfo ? keyInfo[0] : null;
+            }
+            
+            // Number keys
+            if (eventCode.startsWith('Digit') && eventCode.length === 6) {
+                const digit = eventCode.charAt(5);
+                const keyInfo = HID_KEYS.get(digit);
+                return keyInfo ? keyInfo[0] : null;
+            }
+            
+            // Special key mapping
+            const specialKeyMap = {
+                'Enter': 0x28,
+                'Escape': 0x29,
+                'Backspace': 0x2A,
+                'Tab': 0x2B,
+                'Space': 0x2C,
+                'Minus': 0x2D,
+                'Equal': 0x2E,
+                'BracketLeft': 0x2F,
+                'BracketRight': 0x30,
+                'Backslash': 0x31,
+                'Semicolon': 0x33,
+                'Quote': 0x34,
+                'Backquote': 0x35,
+                'Comma': 0x36,
+                'Period': 0x37,
+                'Slash': 0x38,
+                'F1': 0x3A, 'F2': 0x3B, 'F3': 0x3C, 'F4': 0x3D,
+                'F5': 0x3E, 'F6': 0x3F, 'F7': 0x40, 'F8': 0x41,
+                'F9': 0x42, 'F10': 0x43, 'F11': 0x44, 'F12': 0x45,
+                'Insert': 0x49,
+                'Home': 0x4A,
+                'PageUp': 0x4B,
+                'Delete': 0x4C,
+                'End': 0x4D,
+                'PageDown': 0x4E,
+                'ArrowRight': 0x4F,
+                'ArrowLeft': 0x50,
+                'ArrowDown': 0x51,
+                'ArrowUp': 0x52
+            };
+            
+            return specialKeyMap[eventCode] || null;
+        }
+        
+        // Get controlBits for modifier keys
+        function getControlBits() {
+            let bits = 0;
+            if (pressedModifiers.has('Control')) bits |= 0x01;  // bit0 = Ctrl
+            if (pressedModifiers.has('Shift')) bits |= 0x02;     // bit1 = Shift
+            if (pressedModifiers.has('Alt')) bits |= 0x04;       // bit2 = Alt
+            if (pressedModifiers.has('Meta')) bits |= 0x08;     // bit3 = Win
+            return bits;
+        }
+
+        async function connectController() {
+            if ('serial' in navigator) {
+                try {
+                    port = await navigator.serial.requestPort();
+                    
+                    ch9329 = new CH9329();
+                    const connected = await ch9329.connect(port, 9600); // CH9329 預設 9600，建議改為 115200
+                    
+                    if (!connected) {
+                        throw new Error('CH9329 連接失敗');
+                    }
+
+                    connectControllerButton.disabled = true;
+                    disconnectControllerButton.disabled = false;
+
+                    addEventListeners();
+                    overlay.focus();
+
+                    ctrlAltDelButton.disabled = false;
+                    winButton.disabled = false;
+                    ctrlButton.disabled = false;
+                    shiftButton.disabled = false;
+                    altButton.disabled = false;
+                    spaceButton.disabled = false;
+                    tabButton.disabled = false;
+                    mouseModeButton.disabled = false;
+                    fnButton.disabled = false;
+                    releaseAllModifiersButton.disabled = false;
+                    pasteTextButton.disabled = false;
+
+                } catch (error) {
+                    console.error('Connect controller error:', error);
+                    
+                    // Display different messages based on error type
+                    if (error.name === 'NetworkError') {
+                        alert('Cannot open serial port, may be occupied by another program. Please close other programs using this device and try again.');
+                    } else {
+                        alert('Error connecting controller: ' + error.message);
+                    }
+                }
+            } else {
+                alert('Your browser does not support Web Serial API');
+            }
+        }
+    
+     
+        async function disconnectController() {
+            try {
+                if (ch9329) {
+                    // 釋放所有按鍵
+                    await ch9329.sendKeyUp();
+                    await ch9329.disconnect();
+                    ch9329 = null;
+                }
+                
+                if (port) {
+                    await port.close();
+                    port = null;
+                }
+            } catch (error) {
+                console.error('Close connection error:', error);
+            }
+
+            // Reset all button states
+            connectControllerButton.disabled = false;
+            disconnectControllerButton.disabled = true;
+
+            removeEventListeners();
+            await resetButtonStates();
+
+            ctrlAltDelButton.disabled = true;
+            winButton.disabled = true;
+            ctrlButton.disabled = true;
+            shiftButton.disabled = true;
+            altButton.disabled = true;
+            spaceButton.disabled = true;
+            tabButton.disabled = true;
+            mouseModeButton.disabled = true;
+            fnButton.disabled = true;
+            releaseAllModifiersButton.disabled = true;
+            pasteTextButton.disabled = true;
+
+            closeFnPopup();
+            lastMouseX = null;
+            lastMouseY = null;
+            lastMouseScreenX = null;
+            lastMouseScreenY = null;
+            pendingMouseMove = null;
+            if (mouseMoveThrottleTimer) {
+                clearTimeout(mouseMoveThrottleTimer);
+                mouseMoveThrottleTimer = null;
+            }
+        }
+
+
+    
+        function addEventListeners() {
+            keyEventListener = (event) => sendKeyToCH9329(event);
+            overlay.addEventListener('keydown', keyEventListener);
+            overlay.addEventListener('keyup', keyEventListener);
+    
+            mouseMoveListener = (event) => sendMouseMovementToCH9329(event);
+            overlay.addEventListener('mousemove', mouseMoveListener);
+    
+            mouseClickListener = (event) => sendMouseClickToCH9329(event);
+            overlay.addEventListener('mousedown', mouseClickListener);
+            overlay.addEventListener('mouseup', mouseClickListener);
+            
+            overlay.addEventListener('wheel', handleMouseWheel);
+
+           
+            ctrlAltDelButton.addEventListener('click', sendCtrlAltDel);
+            winButton.addEventListener('click', toggleWinKey);
+            ctrlButton.addEventListener('click', toggleCtrlKey);
+            shiftButton.addEventListener('click', toggleShiftKey);
+            altButton.addEventListener('click', toggleAltKey);
+            spaceButton.addEventListener('click', sendSpace);
+            tabButton.addEventListener('click', sendTab);
+            mouseModeButton.addEventListener('click', toggleMouseMode);
+            fnButton.addEventListener('click', toggleFnKeys);
+            releaseAllModifiersButton.addEventListener('click', releaseAllModifiers);
+    
+            pasteTextButton.addEventListener('click', () => {
+                pasteDialog.style.display = 'block';
+                pasteArea.value = '';
+                pasteProgress.style.display = 'none';
+                isPasting = false;
+                isPausePasting = false;
+            });
+
+            cancelPasteButton.addEventListener('click', () => {
+                pasteDialog.style.display = 'none';
+                if (isPasting) {
+                    isPasting = false;
+                    isPausePasting = false;
+                }
+            });
+
+            pausePasteButton.addEventListener('click', () => {
+                if (isPasting) {
+                    isPausePasting = !isPausePasting;
+                    pausePasteButton.textContent = isPausePasting ? '繼續' : '暫停';
+                }
+            });
+
+            startPasteButton.addEventListener('click', async () => {
+                if (!ch9329 || !ch9329.isConnected()) {
+                    alert('Please connect controller first');
+                    return;
+                }
+
+                textToSend = pasteArea.value;
+                if (!textToSend) {
+                    alert('Please enter text to send');
+                    return;
+                }
+
+                // Check if text contains CJK characters
+                if (containsCJK(textToSend)) {
+                    if (!confirm('Text contains Chinese, Japanese, or Korean characters, which cannot be sent correctly.\n\nContinue sending? (Unsupported characters will be skipped)')) {
+                        return;
+                    }
+                }
+
+                if (!isPasting) {
+                    isPasting = true;
+                    currentPasteIndex = 0;
+                    pasteProgress.style.display = 'block';
+                    pasteTotal.textContent = textToSend.length;
+                    startPasteButton.disabled = true;
+                    pasteArea.disabled = true;
+
+                    sendTextByChar();
+                }
+            });
+
+            overlay.addEventListener('mouseleave', handleMouseLeave);
+    
+
+            overlay.addEventListener('keydown', (event) => {
+                // Windows 的 Ctrl + A
+                // macOS 的 Command + A (metaKey)
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+                    event.preventDefault();
+                    console.log('Prevented select all event');
+                }
+            });
+
+            document.querySelectorAll('.fn-key').forEach(button => {
+                button.addEventListener('click', () => {
+                    handleFnKeyPress(button.dataset.key);
+                });
+            });
+
+        }
+
+        // Video connect button tooltip function
+        function highlightConnectCapture() {
+            if (!connectCaptureButton.classList.contains('highlight-button')) {
+                // Add flashing effect
+                connectCaptureButton.classList.add('highlight-button');
+                
+                // Create tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = 'Please connect video first, then connect controller.';
+                
+                // Calculate position
+                const buttonRect = connectCaptureButton.getBoundingClientRect();
+                tooltip.style.left = `${buttonRect.left + (buttonRect.width / 2)}px`;
+                tooltip.style.top = `${buttonRect.bottom + 10}px`;
+                tooltip.style.transform = 'translateX(-50%)';
+                
+                // Add to body
+                document.body.appendChild(tooltip);
+                
+                // Set timer to remove effect
+                setTimeout(() => {
+                    connectCaptureButton.classList.remove('highlight-button');
+                    document.body.removeChild(tooltip);
+                }, 3000);
+            }
+        }
+
+
+        function removeEventListeners() {
+            if (keyEventListener) {
+                overlay.removeEventListener('keydown', keyEventListener);
+                overlay.removeEventListener('keyup', keyEventListener);
+                keyEventListener = null;
+            }
+    
+            if (mouseMoveListener) {
+                overlay.removeEventListener('mousemove', mouseMoveListener);
+                mouseMoveListener = null;
+            }
+    
+            if (mouseClickListener) {
+                overlay.removeEventListener('mousedown', mouseClickListener);
+                overlay.removeEventListener('mouseup', mouseClickListener);
+                mouseClickListener = null;
+            }
+    
+            overlay.removeEventListener('wheel', handleMouseWheel);
+
+            ctrlAltDelButton.removeEventListener('click', sendCtrlAltDel);
+            winButton.removeEventListener('click', toggleWinKey);
+            ctrlButton.removeEventListener('click', toggleCtrlKey);
+            shiftButton.removeEventListener('click', toggleShiftKey);
+            altButton.removeEventListener('click', toggleAltKey);
+            spaceButton.removeEventListener('click', sendSpace);
+            tabButton.removeEventListener('click', sendTab);
+            mouseModeButton.removeEventListener('click', toggleMouseMode);
+            fnButton.removeEventListener('click', toggleFnKeys);
+            releaseAllModifiersButton.removeEventListener('click', releaseAllModifiers);
+       
+            overlay.removeEventListener('mouseleave', handleMouseLeave);
+    
+            document.querySelectorAll('.fn-key').forEach(button => {
+                button.removeEventListener('click', () => {
+                    handleFnKeyPress(button.dataset.key);
+                });
+            });
+        }
+
+        async function sendTextByChar() {
+            if (!isPasting || !ch9329 || !ch9329.isConnected()) {
+                resetPasteStatus();
+                return;
+            }
+
+            if (isPausePasting) {
+                setTimeout(sendTextByChar, 100);
+                return;
+            }
+
+            if (currentPasteIndex >= textToSend.length) {
+                resetPasteStatus();
+                pasteDialog.style.display = 'none';
+                return;
+            }
+
+            try {
+                const char = textToSend[currentPasteIndex];
+                const DELAY = 10;
+
+                // 獲取字符對應的 HID key code 和是否需要 Shift
+                function getCharHIDCode(char) {
+                    const keyInfo = HID_KEYS.get(char);
+                    if (keyInfo) {
+                        return { hidCode: keyInfo[0], shift: keyInfo[1] === 2 };
+                    }
+                    
+                    // 處理換行
+                    if (char === '\n' || char === '\r') {
+                        return { hidCode: 0x28, shift: false }; // Enter
+                    }
+                    
+                    return null;
+                }
+
+                const charInfo = getCharHIDCode(char);
+                if (charInfo) {
+                    const controlBits = charInfo.shift ? 0x02 : 0x00; // Shift if needed
+                    await ch9329.sendKeyPress(charInfo.hidCode, controlBits);
+                    await new Promise(resolve => setTimeout(resolve, DELAY));
+                }
+
+                currentPasteIndex++;
+                pasteStatus.textContent = currentPasteIndex;
+                pastePercent.textContent = Math.round((currentPasteIndex / textToSend.length) * 100);
+
+                setTimeout(sendTextByChar, DELAY);
+
+            } catch (error) {
+                console.error('Send text error:', error);
+                resetPasteStatus();
+                alert('Error sending text, please try again');
+            }
+        }
+
+   
+        async function handleMouseWheel(event) {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            const now = Date.now();
+            if (now - lastWheelTime < WHEEL_DELAY) {
+                return;
+            }
+            lastWheelTime = now;
+
+            event.preventDefault();
+            const scrollAmount = -Math.sign(event.deltaY);
+            
+            try {
+                await ch9329.sendMouseMove(0, 0, 0, scrollAmount);
+            } catch (error) {
+                console.error('Send mouse wheel event error:', error);
+            }
+        }
+
+        async function sendKeyToCH9329(event) {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            overlay.focus();
+
+            const key = event.code;
+            const isKeyDown = event.type === 'keydown';
+
+            // 處理修飾鍵
+            if (modifierKeys[key]) {
+                const modifier = modifierKeys[key];
+                
+                if (isKeyDown) {
+                    pressedModifiers.add(modifier);
+                } else {
+                    pressedModifiers.delete(modifier);
+                }
+                
+                // 修飾鍵不需要發送 HID key code，只需要更新狀態
+                return;
+            }
+
+            // 處理普通按鍵
+            if (isKeyDown) {
+                pressedKeys.add(key);
+            } else {
+                pressedKeys.delete(key);
+            }
+
+            // 獲取 HID key code
+            const hidCode = getHIDKeyCode(key, event.shiftKey);
+            if (!hidCode) {
+                console.warn(`未找到按鍵映射: ${key}`);
+                return;
+            }
+
+            try {
+                const controlBits = getControlBits();
+                
+                if (isKeyDown) {
+                    await ch9329.sendKeyDown(hidCode, controlBits);
+                } else {
+                    // 釋放按鍵時，需要檢查是否還有其他按鍵按下
+                    // 如果沒有其他按鍵，發送空的報告
+                    if (pressedKeys.size === 0) {
+                        await ch9329.sendKeyUp();
+                    } else {
+                        // 還有其他按鍵按下，更新報告但不移除當前按鍵
+                        // 這裡簡化處理，直接發送空的報告
+                        await ch9329.sendKeyUp();
+                    }
+                }
+            } catch (error) {
+                console.error('Send key error:', error);
+            }
+        }
+    
+        async function handleVisibilityChange() {
+            if (document.hidden || document.visibilityState === 'hidden') {
+                if (ch9329 && ch9329.isConnected()) {
+                    try {
+                        await releaseAllKeys();
+                    } catch (error) {
+                        console.error('Release all keys error:', error);
+                    }
+                }
+            }
+        }
+    
+        // Calculate mouse coordinates within video area
+        function getMouseScreenCoordinates(event) {
+            const rect = video.getBoundingClientRect();
+            
+            // Get simulated resolution (for coordinate mapping)
+            const [simWidth, simHeight] = captureResolutionSelect.value.split('x').map(Number);
+            
+            // Get container size (same logic as updateVideoDisplayScale)
+            const container = document.getElementById('videoContainer');
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            
+            // Calculate aspect ratios
+            const simAspectRatio = simWidth / simHeight;
+            const containerAspectRatio = containerWidth / containerHeight;
+            
+            // Calculate display size to fit container while maintaining aspect ratio (same as updateVideoDisplayScale)
+            let displayWidth, displayHeight;
+            
+            if (simAspectRatio > containerAspectRatio) {
+                // Simulated resolution is wider, fit to container width
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / simAspectRatio;
+            } else {
+                // Simulated resolution is taller, fit to container height
+                displayHeight = containerHeight;
+                displayWidth = containerHeight * simAspectRatio;
+            }
+            
+            // Ensure it doesn't exceed container size
+            if (displayWidth > containerWidth) {
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / simAspectRatio;
+            }
+            if (displayHeight > containerHeight) {
+                displayHeight = containerHeight;
+                displayWidth = containerHeight * simAspectRatio;
+            }
+            
+            // Calculate video offset in container (center display)
+            const offsetX = rect.left + (rect.width - displayWidth) / 2;
+            const offsetY = rect.top + (rect.height - displayHeight) / 2;
+
+            const mouseX = (event.clientX - offsetX);
+            const mouseY = (event.clientY - offsetY);
+
+            if (mouseX >= 0 && mouseX <= displayWidth && mouseY >= 0 && mouseY <= displayHeight) {
+                const relativeX = mouseX / displayWidth;
+                const relativeY = mouseY / displayHeight;
+
+                // Use simulated resolution to calculate coordinate mapping
+                const absoluteX = Math.round(relativeX * simWidth);
+                const absoluteY = Math.round(relativeY * simHeight);
+
+                // Calculate CH9329 coordinates (0-4096 range)
+                const ch9329X = Math.round((4096 * absoluteX) / simWidth);
+                const ch9329Y = Math.round((4096 * absoluteY) / simHeight);
+
+                return {
+                    valid: true,
+                    screenX: absoluteX,
+                    screenY: absoluteY,
+                    displayX: mouseX,
+                    displayY: mouseY,
+                    ch9329X: ch9329X,
+                    ch9329Y: ch9329Y,
+                    captureWidth: simWidth,
+                    captureHeight: simHeight
+                };
+            }
+
+            return { valid: false };
+        }
+
+        // Process mouse movement (based on selected mode)
+        async function processMouseMove() {
+            if (!pendingMouseMove || !ch9329 || !ch9329.isConnected()) {
+                mouseMoveThrottleTimer = null;
+                return;
+            }
+
+            const coords = pendingMouseMove;
+            pendingMouseMove = null;
+            mouseMoveThrottleTimer = null;
+
+            const currentTime = Date.now();
+            // 使用擷取卡解析度來計算座標映射
+            const [screenWidth, screenHeight] = captureResolutionSelect.value.split('x').map(Number);
+
+            try {
+                if (mouseMoveMode === 'absolute') {
+                    // 使用絕對座標模式
+                    // 確保座標在有效範圍內
+                    const clampedX = Math.max(0, Math.min(coords.screenX, screenWidth - 1));
+                    const clampedY = Math.max(0, Math.min(coords.screenY, screenHeight - 1));
+                    
+                    // 絕對模式下，每次都發送座標
+                    try {
+                        await ch9329.sendMouseAbsolute(clampedX, clampedY, mouseButtons, screenWidth, screenHeight);
+                        lastMouseScreenX = clampedX;
+                        lastMouseScreenY = clampedY;
+                        
+                        // Debug info: log each movement (rate limited)
+                        if (currentTime - lastConsoleLogTime >= 100) {
+                            console.log(`Absolute coordinates: X=${clampedX}, Y=${clampedY} (screen: ${screenWidth}x${screenHeight}, buttons: ${mouseButtons})`);
+                            lastConsoleLogTime = currentTime;
+                        }
+                    } catch (err) {
+                        console.error('Send absolute coordinates failed:', err);
+                        throw err;
+                    }
+                } else {
+                    // Use relative movement mode
+                    let dx = 0;
+                    let dy = 0;
+
+                    if (lastMouseScreenX !== null && lastMouseScreenY !== null) {
+                        dx = coords.screenX - lastMouseScreenX;
+                        dy = coords.screenY - lastMouseScreenY;
+                    } else {
+                        // First movement, use absolute coordinates to initialize position
+                        const clampedX = Math.max(0, Math.min(coords.screenX, screenWidth - 1));
+                        const clampedY = Math.max(0, Math.min(coords.screenY, screenHeight - 1));
+                        await ch9329.sendMouseAbsolute(clampedX, clampedY, mouseButtons, screenWidth, screenHeight);
+                        lastMouseScreenX = clampedX;
+                        lastMouseScreenY = clampedY;
+                        lastMouseX = coords.displayX;
+                        lastMouseY = coords.displayY;
+                        return;
+                    }
+
+                    // Limit movement distance to -127 to 127 range (CH9329 relative movement limit)
+                    const clampMove = (v) => Math.max(-127, Math.min(127, Math.round(v)));
+                    const moveX = clampMove(dx);
+                    const moveY = clampMove(dy);
+
+                    if (moveX !== 0 || moveY !== 0) {
+                        await ch9329.sendMouseMove(mouseButtons, moveX, moveY, 0);
+                        
+                        // Update tracking position (accumulate relative movement)
+                        lastMouseScreenX = lastMouseScreenX + moveX;
+                        lastMouseScreenY = lastMouseScreenY + moveY;
+                        
+                        // Ensure tracking position is within valid range
+                        lastMouseScreenX = Math.max(0, Math.min(lastMouseScreenX, screenWidth - 1));
+                        lastMouseScreenY = Math.max(0, Math.min(lastMouseScreenY, screenHeight - 1));
+                    }
+                }
+
+                lastMouseX = coords.displayX;
+                lastMouseY = coords.displayY;
+            } catch (error) {
+                console.error('Send mouse movement error:', error);
+            }
+        }
+
+        // Update debug info display
+        function updateDebugInfo(coords) {
+            if (coords && coords.valid) {
+                debugDisplayXY.textContent = `${Math.round(coords.displayX)}, ${Math.round(coords.displayY)}`;
+                debugScreenXY.textContent = `${coords.screenX}, ${coords.screenY}`;
+                debugCH9329XY.textContent = `${coords.ch9329X}, ${coords.ch9329Y}`;
+                debugResolution.textContent = `${coords.captureWidth}x${coords.captureHeight}`;
+                debugInfo.classList.add('show');
+            } else {
+                debugInfo.classList.remove('show');
+            }
+        }
+
+        async function sendMouseMovementToCH9329(event) {
+            if (!ch9329 || !ch9329.isConnected()) {
+                // 即使未連接控制器，也顯示除錯資訊
+                const coords = getMouseScreenCoordinates(event);
+                updateDebugInfo(coords);
+                return;
+            }
+            
+            const coords = getMouseScreenCoordinates(event);
+            if (!coords.valid) {
+                // 滑鼠離開視訊區域，重置狀態
+                if (lastMouseScreenX !== null || lastMouseScreenY !== null) {
+                    lastMouseScreenX = null;
+                    lastMouseScreenY = null;
+                }
+                updateDebugInfo(null);
+                return;
+            }
+
+            // 更新除錯資訊
+            updateDebugInfo(coords);
+
+            // 儲存待處理的移動
+            pendingMouseMove = coords;
+
+            // 節流處理：使用 requestAnimationFrame 或固定間隔
+            if (!mouseMoveThrottleTimer) {
+                const now = Date.now();
+                const timeSinceLastMove = now - lastMouseMoveTime;
+                
+                if (timeSinceLastMove >= MOUSE_MOVE_THROTTLE) {
+                    // 立即處理
+                    lastMouseMoveTime = now;
+                    await processMouseMove();
+                } else {
+                    // 延遲處理
+                    const delay = MOUSE_MOVE_THROTTLE - timeSinceLastMove;
+                    mouseMoveThrottleTimer = setTimeout(async () => {
+                        lastMouseMoveTime = Date.now();
+                        await processMouseMove();
+                    }, delay);
+                }
+            }
+        }
+    
+        let mouseButtons = 0; // 追蹤當前按下的滑鼠按鍵
+
+        async function sendMouseClickToCH9329(event) {
+            // 即使未連接控制器，也顯示除錯資訊
+            const coords = getMouseScreenCoordinates(event);
+            updateDebugInfo(coords);
+            
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            event.preventDefault();
+            
+            let buttonBit = 0;
+            if (event.button === 0) buttonBit = 0x01;      // 左鍵
+            else if (event.button === 1) buttonBit = 0x04; // 中鍵
+            else if (event.button === 2) buttonBit = 0x02; // 右鍵
+
+            if (event.type === 'mousedown') {
+                mouseButtons |= buttonBit;
+            } else {
+                mouseButtons &= ~buttonBit;
+            }
+
+            try {
+                // 獲取當前滑鼠位置
+                if (coords.valid) {
+                    // 使用擷取卡解析度來計算座標映射
+                    const [captureWidth, captureHeight] = captureResolutionSelect.value.split('x').map(Number);
+                    
+                    // 點擊時使用絕對座標確保精確定位，並立即發送按鍵狀態
+                    await ch9329.sendMouseAbsolute(coords.screenX, coords.screenY, mouseButtons, captureWidth, captureHeight);
+                    
+                    // 更新追蹤位置
+                    lastMouseScreenX = coords.screenX;
+                    lastMouseScreenY = coords.screenY;
+                    lastMouseX = coords.displayX;
+                    lastMouseY = coords.displayY;
+                    
+                    console.log(`Mouse button sent: ${event.type} button=${event.button} buttons=${mouseButtons.toString(2)} at (${coords.screenX}, ${coords.screenY})`);
+                } else {
+                    // Even if coordinates are invalid, send button state (for drag operations, etc.)
+                    const [captureWidth, captureHeight] = captureResolutionSelect.value.split('x').map(Number);
+                    if (lastMouseScreenX !== null && lastMouseScreenY !== null) {
+                        await ch9329.sendMouseAbsolute(lastMouseScreenX, lastMouseScreenY, mouseButtons, captureWidth, captureHeight);
+                        console.log(`Mouse button state sent: ${event.type} button=${event.button} buttons=${mouseButtons.toString(2)} at (${lastMouseScreenX}, ${lastMouseScreenY})`);
+                    }
+                }
+            } catch (error) {
+                console.error('Send mouse click error:', error);
+            }
+        }
+    
+        function handleMouseLeave() {
+            // If mouse leaves video area while buttons are still pressed, need to release buttons
+            if (mouseButtons !== 0 && ch9329 && ch9329.isConnected()) {
+                const [captureWidth, captureHeight] = captureResolutionSelect.value.split('x').map(Number);
+                if (lastMouseScreenX !== null && lastMouseScreenY !== null) {
+                    // Send button release state
+                    ch9329.sendMouseAbsolute(lastMouseScreenX, lastMouseScreenY, 0, captureWidth, captureHeight).catch(err => {
+                        console.error('Release mouse button error:', err);
+                    });
+                } else {
+                    // If no valid coordinates, only send button release
+                    ch9329.sendMouseButtons(0).catch(err => {
+                        console.error('Release mouse button error:', err);
+                    });
+                }
+                mouseButtons = 0;
+            }
+            
+            lastMouseX = null;
+            lastMouseY = null;
+            lastMouseScreenX = null;
+            lastMouseScreenY = null;
+            pendingMouseMove = null;
+            if (mouseMoveThrottleTimer) {
+                clearTimeout(mouseMoveThrottleTimer);
+                mouseMoveThrottleTimer = null;
+            }
+            
+            // Hide debug info
+            updateDebugInfo(null);
+        }
+    
+        async function sendCtrlAltDel() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            try {
+                const ctrlAltDel = 0x01 | 0x04; // Ctrl + Alt
+                await ch9329.sendKeyboardReport(ctrlAltDel, [0x4C]); // Delete key
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await ch9329.sendKeyUp();
+                console.log('Ctrl+Alt+Delete sent');
+            } catch (error) {
+                console.error('Send Ctrl+Alt+Delete error:', error);
+            }
+        }
+    
+        async function toggleWinKey() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            if (pressedModifiers.has('Meta')) {
+                try {
+                    pressedModifiers.delete('Meta');
+                    await ch9329.sendKeyUp();
+                    console.log('Win key released');
+                    winButton.classList.remove('active');
+                } catch (error) {
+                    console.error('Release Win key error:', error);
+                }
+            } else {
+                try {
+                    pressedModifiers.add('Meta');
+                    await ch9329.sendKeyDown(0, 0x08); // Win key (bit3)
+                    console.log('Win key pressed');
+                    winButton.classList.add('active');
+                } catch (error) {
+                    console.error('Press Win key error:', error);
+                }
+            }
+        }
+
+        async function toggleCtrlKey() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            if (pressedModifiers.has('Control')) {
+                try {
+                    pressedModifiers.delete('Control');
+                    await ch9329.sendKeyUp();
+                    console.log('Ctrl key released');
+                    ctrlButton.classList.remove('active');
+                } catch (error) {
+                    console.error('Release Ctrl key error:', error);
+                }
+            } else {
+                try {
+                    pressedModifiers.add('Control');
+                    await ch9329.sendKeyDown(0, 0x01); // Ctrl key (bit0)
+                    console.log('Ctrl key pressed');
+                    ctrlButton.classList.add('active');
+                } catch (error) {
+                    console.error('Press Ctrl key error:', error);
+                }
+            }
+        }
+
+        async function toggleShiftKey() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            if (pressedModifiers.has('Shift')) {
+                try {
+                    pressedModifiers.delete('Shift');
+                    await ch9329.sendKeyUp();
+                    console.log('Shift key released');
+                    shiftButton.classList.remove('active');
+                } catch (error) {
+                    console.error('Release Shift key error:', error);
+                }
+            } else {
+                try {
+                    pressedModifiers.add('Shift');
+                    await ch9329.sendKeyDown(0, 0x02); // Shift key (bit1)
+                    console.log('Shift key pressed');
+                    shiftButton.classList.add('active');
+                } catch (error) {
+                    console.error('Press Shift key error:', error);
+                }
+            }
+        }
+
+        async function toggleAltKey() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            if (pressedModifiers.has('Alt')) {
+                try {
+                    pressedModifiers.delete('Alt');
+                    await ch9329.sendKeyUp();
+                    console.log('Alt key released');
+                    altButton.classList.remove('active');
+                } catch (error) {
+                    console.error('Release Alt key error:', error);
+                }
+            } else {
+                try {
+                    pressedModifiers.add('Alt');
+                    await ch9329.sendKeyDown(0, 0x04); // Alt key (bit2)
+                    console.log('Alt key pressed');
+                    altButton.classList.add('active');
+                } catch (error) {
+                    console.error('Press Alt key error:', error);
+                }
+            }
+        }
+
+        async function sendSpace() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            try {
+                const controlBits = getControlBits();
+                await ch9329.sendKeyPress(0x2C, controlBits); // Space key
+                console.log('Space key sent');
+            } catch (error) {
+                console.error('Send Space key error:', error);
+            }
+        }
+
+        async function sendTab() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            try {
+                const controlBits = getControlBits();
+                await ch9329.sendKeyPress(0x2B, controlBits); // Tab key
+                console.log('Tab key sent');
+            } catch (error) {
+                console.error('Send Tab key error:', error);
+            }
+        }
+
+        function toggleFnKeys(event) {
+            if (!isFnPopupVisible) {
+                const buttonRect = fnButton.getBoundingClientRect();
+                fnKeysPopup.style.display = 'grid';
+                fnKeysPopup.style.top = `${buttonRect.bottom + 5}px`;
+                fnKeysPopup.style.left = `${buttonRect.left}px`;
+                isFnPopupVisible = true;
+                fnButton.classList.add('active');
+            } else {
+                closeFnPopup();
+            }
+        }
+
+        function resetPasteStatus() {
+            isPasting = false;
+            isPausePasting = false;
+            currentPasteIndex = 0;
+            startPasteButton.disabled = false;
+            pasteArea.disabled = false;
+            pausePasteButton.textContent = '暫停';
+            //pasteArea.value = '';  // 清空文字區域
+        }
+
+        async function handleFnKeyPress(key) {
+            if (!ch9329 || !ch9329.isConnected()) {
+                closeFnPopup();
+                return;
+            }
+            
+            try {
+                const hidCode = getHIDKeyCode(key);
+                if (hidCode) {
+                    await ch9329.sendKeyPress(hidCode);
+                    console.log(`Function key sent: ${key}`);
+                }
+            } catch (error) {
+                console.error(`Send function key ${key} error:`, error);
+            }
+            closeFnPopup();
+        }
+
+        function closeFnPopup() {
+            fnKeysPopup.style.display = 'none';
+            isFnPopupVisible = false;
+            fnButton.classList.remove('active');
+        }
+
+
+        async function releaseAllModifiers() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            try {
+                await ch9329.sendKeyUp();
+                console.log('All modifiers released');
+                pressedModifiers.clear();
+                winButton.classList.remove('active');
+                ctrlButton.classList.remove('active');
+                shiftButton.classList.remove('active');
+                altButton.classList.remove('active');
+            } catch (error) {
+                console.error('釋放所有修飾鍵時發生錯誤:', error);
+            }
+        }
+
+        async function releaseAllKeys() {
+            if (!ch9329 || !ch9329.isConnected()) return;
+            
+            try {
+                await ch9329.sendKeyUp();
+                console.log('All keys released');
+
+                pressedKeys.clear();
+                pressedModifiers.clear();
+                winButton.classList.remove('active');
+                ctrlButton.classList.remove('active');
+                altButton.classList.remove('active');
+            } catch (error) {
+                console.error('Release all keys error:', error);
+            }
+        }
+
+        async function resetButtonStates() {
+            if (pressedModifiers.size > 0) {
+                if (ch9329 && ch9329.isConnected()) {
+                    await releaseAllModifiers();
+                } else {
+                    pressedModifiers.clear();
+                    winButton.classList.remove('active');
+                    ctrlButton.classList.remove('active');
+                    shiftButton.classList.remove('active');
+                    altButton.classList.remove('active');
+                }
+            }
+        }
+
+
+
+        connectControllerButton.addEventListener('click', connectController);
+        disconnectControllerButton.addEventListener('click', disconnectController);
+
+        // 視訊來源切換的監聽器
+        videoSourceSelect.addEventListener('change', async () => {
+            if (videoStream) {
+                const selectedDeviceId = videoSourceSelect.value;
+                // 硬體擷取卡實際解析度為 1920x1080
+                const hardwareWidth = 1920;
+                const hardwareHeight = 1080;
+
+                try {
+                    const newStream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            deviceId: { exact: selectedDeviceId },
+                            width: { exact: hardwareWidth },
+                            height: { exact: hardwareHeight }
+                        }
+                    });
+
+                    // Stop old video stream
+                    videoStream.getTracks().forEach(track => track.stop());
+                    videoStream = newStream;
+                    video.srcObject = videoStream;
+
+                    // Save selected video source
+                    localStorage.setItem('videoSourceId', selectedDeviceId);
+                    
+                    // Adjust display scale based on simulated resolution
+                    video.onloadedmetadata = () => {
+                        updateVideoDisplayScale();
+                    };
+                    
+                } catch (error) {
+                    console.error('Switch video source failed:', error);
+                    alert('Failed to switch video source, please try again');
+                }
+            }
+        });
+
+        connectCaptureButton.addEventListener('click', startVideoStream);
+        disconnectCaptureButton.addEventListener('click', stopVideoStream);
+
+        // Add event listener to simulated resolution dropdown, adjust display scale when changed
+        captureResolutionSelect.addEventListener('change', () => {
+            localStorage.setItem('captureResolution', captureResolutionSelect.value);
+            console.log(`Simulated resolution changed to: ${captureResolutionSelect.value}`);
+            // If video stream is running, adjust display scale
+            if (videoStream && video.videoWidth && video.videoHeight) {
+                updateVideoDisplayScale();
+            }
+        });
+
+        // Function to update mouse mode button text
+        function updateMouseModeButton() {
+            if (mouseModeButton) {
+                const modeText = mouseMoveMode === 'relative' ? 'Relative' : 'Absolute';
+                mouseModeButton.textContent = `Mouse: ${modeText}`;
+                if (mouseMoveMode === 'absolute') {
+                    mouseModeButton.classList.add('active');
+                } else {
+                    mouseModeButton.classList.remove('active');
+                }
+            }
+        }
+
+        // Function to toggle mouse mode
+        function toggleMouseMode() {
+            mouseMoveMode = mouseMoveMode === 'relative' ? 'absolute' : 'relative';
+            mouseMoveModeSelect.value = mouseMoveMode;
+            localStorage.setItem('mouseMoveMode', mouseMoveMode);
+            // Reset tracking position when switching modes to avoid coordinate inconsistency
+            lastMouseScreenX = null;
+            lastMouseScreenY = null;
+            updateMouseModeButton();
+            console.log(`Mouse move mode changed to: ${mouseMoveMode === 'relative' ? 'Relative' : 'Absolute'}`);
+        }
+
+        // Add event listener to mouse move mode dropdown
+        mouseMoveModeSelect.addEventListener('change', () => {
+            mouseMoveMode = mouseMoveModeSelect.value;
+            localStorage.setItem('mouseMoveMode', mouseMoveMode);
+            // Reset tracking position when switching modes to avoid coordinate inconsistency
+            lastMouseScreenX = null;
+            lastMouseScreenY = null;
+            updateMouseModeButton();
+            console.log(`Mouse move mode changed to: ${mouseMoveMode === 'relative' ? 'Relative' : 'Absolute'}`);
+        });
+
+        // 在選取模擬解析度的下拉選單加入事件監聽，切換時重新啟動視訊串流
+        captureResolutionSelect.addEventListener('change', async () => {
+            if (videoStream) {
+                // 如果視訊串流正在運行，重新啟動以使用新的模擬解析度
+                await startVideoStream();
+            }
+        });
+
+        overlay.addEventListener('click', () => {
+            overlay.focus();
+        });
+
+        overlay.addEventListener('keydown', (event) => {
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                overlay.focus();
+            }
+        });
+
+        overlay.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (isFnPopupVisible && 
+                !fnButton.contains(event.target) && 
+                !fnKeysPopup.contains(event.target)) {
+                closeFnPopup();
+            }
+        });
+
+
+
+
+  
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleVisibilityChange);
+
+        window.addEventListener('blur', closeFnPopup);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                closeFnPopup();
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isPasting) {
+                isPasting = false;
+                isPausePasting = false;
+                alert('Tab switch caused text sending to be interrupted');
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            releaseAllKeys();
+        });
+
+        // Handle window resize to adjust video display scale
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            // Debounce resize events for better performance
+            if (resizeTimer) {
+                clearTimeout(resizeTimer);
+            }
+            resizeTimer = setTimeout(() => {
+                if (videoStream && video.videoWidth && video.videoHeight) {
+                    updateVideoDisplayScale();
+                }
+            }, 16); // ~60fps update rate
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (isPasting) {
+                isPasting = false;
+                isPausePasting = false;
+            }
+        });
+
+
+        // Display text when page loads
+        window.addEventListener('load', () => {
+            document.getElementById('noVideoText').style.display = 'block';
+        });
+
+        window.addEventListener('load', async () => {
+            try {
+                // Actively request video permission
+                await navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        // Stop stream immediately after getting permission
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+            } catch (error) {
+                console.error('Request video permission failed:', error);
+            }
+
+            screenshotButton.addEventListener('click', takeScreenshot);
+            startRecordButton.addEventListener('click', startRecording);
+            stopRecordButton.addEventListener('click', stopRecording);
+
+            await getVideoSources();
+
+            overlay.tabIndex = 0;
+            overlay.style.outline = 'none';
+
+            overlay.addEventListener('keydown', checkControllerAndHighlight);
+            overlay.addEventListener('mousedown', checkControllerAndHighlight);
+            overlay.addEventListener('contextmenu', checkControllerAndHighlight);
+
+            document.getElementById('videoContainer').addEventListener('keydown', (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+                    event.preventDefault();
+                }
+            });
+
+            video.addEventListener('keydown', (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+                    event.preventDefault();
+                }
+            });
+
+
+            video.addEventListener('loadedmetadata', () => {
+                console.log('Video metadata loaded');
+            });
+
+
+            // Listen to button click events
+            zoomInButton.addEventListener('click', zoomIn);
+            zoomOutButton.addEventListener('click', zoomOut);
+
+            // Initialize button state
+            applyZoom();
+        });
+
+
+    </script>
+
+
+</body>
+</html>
